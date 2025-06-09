@@ -1,36 +1,40 @@
 const express = require("express");
 const router = express.Router();
-const { detectNearbyFacilities,logCrashReport} = require("../services/alertService");
+const upload = require("../middleware/upload");
+const { detectNearbyFacilities, logCrashReport } = require("../services/alertService");
 
-router.post("/", async (req, res) => {
+router.post("/upload", upload.fields([
+  { name: "file1" },
+  { name: "file2" },
+  { name: "file3" },
+]), async (req, res) => {
   try {
     const { coordinates } = req.body;
-    
-    // Validasi input
-    if (!coordinates || !Array.isArray(coordinates)) {
-      return res.status(400).json({ error: "Format koordinat tidak valid" });
+    if (!coordinates || !Array.isArray((coordinates))) {
+      return res.status(400).json({ error: "Koordinat tidak valid" });
     }
-    
-    // 1. Cari fasilitas terdekat
+    // 🔍 Cari fasilitas terdekat
     const facilities = await detectNearbyFacilities(coordinates);
-    
-    // 2. Simpan laporan
+
+    // 🧾 Simpan laporan ke DB
     await logCrashReport(coordinates, facilities);
-    
-    // 3. Response
-    res.status(201).json({
-      success: true,
-      message: "Laporan kecelakaan berhasil direkam",
-      facilities: facilities.map(f => ({
+
+    console.log("🚨 Kecelakaan diterima!");
+    console.log("📍 Lokasi:", coordinates);
+    console.log("📦 File:", req.files);
+
+    res.status(200).json({
+      message: "File dan data lokasi berhasil diterima",
+      fasilitas: facilities.map(f => ({
         id: f._id,
         nama: f.nama,
         jenis: f.constructor.modelName
       }))
     });
-    
-  } catch (err) {
+
+   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-module.exports = router;
+module.exports=router;

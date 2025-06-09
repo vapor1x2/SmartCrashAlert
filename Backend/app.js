@@ -1,20 +1,28 @@
-const express = require("express");
-const connectDB = require("./db");
-const hospitalRoutes = require("./routes/hospitals");
-const policeRoutes = require("./routes/police");
-const fireStationRoutes = require("./routes/fireStation");
-const crashRoutes = require("./routes/crash");
+const express = require('express');
+const path = require('path');
+const connectDB = require('./db'); // Pastikan file db.js ada
+const hospitalRoutes = require('./routes/hospitals');
+const policeRoutes = require('./routes/police');
+const fireStationRoutes = require('./routes/fireStation');
+const crashRoutes = require('./routes/Crash');
 
-require("dotenv").config();
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware untuk parsing JSON
 app.use(express.json());
-// Di app.js, tambahkan sebelum connectDB()
+
+// Sajikan file statis dari folder 'uploads'
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Debugging environment variables
 console.log("Environment Variables:");
 console.log("PORT:", process.env.PORT);
 console.log("MONGODB_URI:", process.env.MONGODB_URI ? "***tersedia***" : "TIDAK TERSEDIA");
+
+// Koneksi ke database
 connectDB();
 
 // Routes
@@ -34,6 +42,12 @@ app.get("/", (req, res) => {
       report_crash: "POST /api/crash"
     } 
   });
+});
+
+// Error handling middleware (contoh dasar)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Terjadi kesalahan server!' });
 });
 
 app.listen(PORT, () => {
