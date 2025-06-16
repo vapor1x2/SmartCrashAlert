@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const FireStation = require("../models/fireStation"); // Casing konsisten
+const FireStation = require("../models/fireStation"); 
 
 // GET: Daftar semua pos DAMKAR
 router.get("/", async (req, res) => {

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const crashReportSchema = new mongoose.Schema({
   coordinates: {
-    type: [Number], // [longitude, latitude]
+    type: [Number],
     required: true
   },
   timestamp: {
@@ -10,9 +10,21 @@ const crashReportSchema = new mongoose.Schema({
     default: Date.now
   },
   respondedFacilities: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Hospital" || "PoliceStation" || "FireStation"
+    facilityType: {
+      type: String,
+      enum: ["Hospital", "PoliceStation", "FireStation"],
+      required: true
+    },
+    facilityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: 'respondedFacilities.facilityType'
+    }
   }]
 });
+
+// Tambahkan indeks untuk pencarian
+crashReportSchema.index({ timestamp: -1 });
+crashReportSchema.index({ "respondedFacilities.facilityType": 1 });
 
 module.exports = mongoose.model("CrashReport", crashReportSchema);
