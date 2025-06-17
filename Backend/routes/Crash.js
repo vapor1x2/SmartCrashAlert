@@ -1,53 +1,64 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload");
-const { detectNearbyFacilities, logCrashReport } = require("../Services/alertService");
+const { detectNearbyFacilities, logCrashReport } = require("../services/alertService");
 
-router.post("/upload", upload.fields([
-  { name: "file1", maxCount: 1 },
-  { name: "file2", maxCount: 1 },
-  { name: "file3", maxCount: 1 }
-]), async (req, res) => {
-  try {
-    // Handle coordinates
-    let coordinates;
+// Gunakan middleware upload langsung sebagai fungsi
+router.post("/upload", 
+  (req, res, next) => {
+    console.log('Headers:', req.headers);
+    console.log('Content-Type:', req.headers['content-type']);
+    next();
+  },
+  upload, // Ini adalah middleware Multer yang sudah dikonfigurasi
+  async (req, res) => {
     try {
-      coordinates = JSON.parse(req.body.coordinates);
-    } catch (e) {
-      return res.status(400).json({ error: "Format koordinat tidak valid. Gunakan format JSON array: [longitude, latitude]" });
-    }
-    
-    // Validasi koordinat
-    if (!Array.isArray(coordinates) || coordinates.length !== 2) {
-      return res.status(400).json({ error: "Koordinat harus berupa array [longitude, latitude]" });
-    }
-
-    // 🔍 Cari fasilitas terdekat
-    const facilities = await detectNearbyFacilities(coordinates);
-
-    // 🧾 Simpan laporan ke DB
-    const files = req.files 
-      ? Object.values(req.files).flatMap(fileArray => fileArray)
-      : [];
+      let coordinates;
       
-    await logCrashReport(coordinates, facilities, files);
+      // Handle coordinates
+      if (typeof req.body.coordinates === 'string') {
+        try {
+          coordinates = JSON.parse(req.body.coordinates);
+        } catch (e) {
+          return res.status(400).json({ error: "Format koordinat tidak valid" });
+        }
+      } else {
+        coordinates = req.body.coordinates;
+      }
+      
+      if (!coordinates || !Array.isArray(coordinates)) {
+        return res.status(400).json({ error: "Koordinat tidak valid" });
+      }
 
-    console.log("🚨 Laporan diterima! Notifikasi WhatsApp terkirim");
+      // 🔍 Cari fasilitas terdekat
+      const facilities = await detectNearbyFacilities(coordinates);
 
-    res.status(200).json({
-      message: "Laporan berhasil diterima",
-      fasilitas: facilities.map(f => ({
-        id: f._id,
-        nama: f.nama,
-        jenis: f.constructor.modelName
-      })),
-      files: files.map(f => f.filename)
-    });
+      // 🧾 Simpan laporan ke DB
+      const files = req.files 
+        ? Object.values(req.files).flatMap(fileArray => fileArray)
+        : [];
+        
+      await logCrashReport(coordinates, facilities, files);
 
-   } catch (err) {
-    console.error("🚫 Error:", err);
-    res.status(500).json({ error: err.message });
+      console.log("🚨 Kecelakaan diterima!");
+      console.log("📍 Lokasi:", coordinates);
+      console.log("📦 File:", req.files);
+
+      res.status(200).json({
+        message: "File dan data lokasi berhasil diterima",
+        fasilitas: facilities.map(f => ({
+          id: f._id,
+          nama: f.nama,
+          jenis: f.constructor.modelName
+        })),
+        files: files.map(f => f.filename)
+      });
+
+    } catch (err) {
+      console.error("🚫 Error:", err);
+      res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
 module.exports = router;

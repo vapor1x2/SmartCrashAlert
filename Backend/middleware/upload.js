@@ -4,12 +4,12 @@ const path = require('path');
 // Konfigurasi penyimpanan
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, './uploads/');
+    cb(null, path.join(__dirname, '../uploads'));
   },
   filename: (req, file, cb) => {
     const timestamp = Date.now();
     const ext = path.extname(file.originalname).toLowerCase();
-    const filename = `${file.fieldname}_${timestamp}${ext}`;  // Fixed template literal
+    const filename = `${file.fieldname}_${timestamp}${ext}`;
     cb(null, filename);
   }
 });
@@ -33,6 +33,10 @@ const upload = multer({
   limits: {
     fileSize: 100 * 1024 * 1024 // 100MB
   }
-});
+}).fields([
+  { name: 'file1', maxCount: 1 },
+  { name: 'file2', maxCount: 1 },
+  { name: 'file3', maxCount: 1 }
+]);
 
-module.exports = upload;
+module.exports = upload;
